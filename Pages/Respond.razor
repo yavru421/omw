@@ -63,14 +63,19 @@
             var uri = NavManager.ToAbsoluteUri(NavManager.Uri);
             var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
-            if (!query.TryGetValue("lat", out var aLatStr) || !query.TryGetValue("lng", out var aLngStr))
+            if (!query.TryGetValue("lat", out var aLatStr) || !query.TryGetValue("lng", out var aLngStr) ||
+                string.IsNullOrEmpty(aLatStr) || string.IsNullOrEmpty(aLngStr))
             {
                 gpsDenied = true;
                 return; 
             }
 
-            double userALat = double.Parse(aLatStr);
-            double userALng = double.Parse(aLngStr);
+            if (!double.TryParse(aLatStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double userALat) ||
+                !double.TryParse(aLngStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double userALng))
+            {
+                gpsDenied = true;
+                return;
+            }
 
             var userBCoords = await JS.InvokeAsync<OMW.Models.GpsCoordinates>("getDeviceLocation");
             

@@ -12,8 +12,21 @@ window.getDeviceLocation = () => {
                     accuracy: position.coords.accuracy
                 });
             },
-            (error) => reject(error.message),
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            (error) => {
+                console.warn("High-accuracy geolocation failed, attempting low-accuracy fallback:", error.message);
+                navigator.geolocation.getCurrentPosition(
+                    (fallbackPos) => {
+                        resolve({
+                            latitude: fallbackPos.coords.latitude,
+                            longitude: fallbackPos.coords.longitude,
+                            accuracy: fallbackPos.coords.accuracy
+                        });
+                    },
+                    (fallbackError) => reject(fallbackError.message),
+                    { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+                );
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
         );
     });
 };

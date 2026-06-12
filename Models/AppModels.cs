@@ -9,7 +9,7 @@ public class GpsCoordinates
 
 public class OsrmResponse
 {
-    public string Code { get; set; }
+    public string Code { get; set; } = string.Empty;
     public List<OsrmRoute> Routes { get; set; } = new();
 }
 
