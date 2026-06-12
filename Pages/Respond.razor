@@ -1,0 +1,83 @@
+@page "/respond"
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject OMW.Services.IRoutingService RoutingService
+
+<div class="omw-card">
+    <h2>When are you heading out?</h2>
+
+    @if (gpsDenied)
+    {
+        <div class="alert">
+            <strong>Location Required</strong><br/>
+            Please manually text your ETA, or refresh and allow location access.
+        </div>
+    }
+    else if (isProcessing)
+    {
+        <p><em>Calculating drive time...</em></p>
+    }
+    else
+    {
+        <div style="margin-top: 24px;">
+            <button class="btn-massive" @onclick="() => ProcessEtaAsync(10)">In 10 Minutes</button>
+            <button class="btn-massive" @onclick="() => ProcessEtaAsync(30)">In 30 Minutes</button>
+            <button class="btn-massive" @onclick="() => ProcessEtaAsync(60)">In 1 Hour</button>
+            <button class="btn-massive" @onclick="() => ProcessEtaAsync(300)">5+ Hours (Tied up)</button>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isProcessing;
+    private bool gpsDenied;
+
+    private async Task ProcessEtaAsync(int bufferMinutes)
+    {
+        isProcessing = true;
+        gpsDenied = false;
+
+        try
+        {
+            var uri = NavManager.ToAbsoluteUri(NavManager.Uri);
+            var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+            if (!query.TryGetValue("lat", out var aLatStr) || !query.TryGetValue("lng", out var aLngStr))
+                return; 
+
+            double userALat = double.Parse(aLatStr);
+            double userALng = double.Parse(aLngStr);
+
+            var userBCoords = await JS.InvokeAsync<OMW.Models.GpsCoordinates>("getDeviceLocation");
+            
+            int travelTimeMinutes = await RoutingService.GetDriveTimeMinutesAsync(userBCoords.Latitude, userBCoords.Longitude, userALat, userALng);
+
+            DateTime finalArrival = DateTime.Now.AddMinutes(bufferMinutes).AddMinutes(travelTimeMinutes);
+            string formattedTime = finalArrival.ToString("t"); 
+
+            await TriggerSmsRedirect(formattedTime, bufferMinutes);
+        }
+        catch
+        {
+            gpsDenied = true;
+        }
+        finally
+        {
+            isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task TriggerSmsRedirect(string absoluteTime, int buffer)
+    {
+        string textBody = buffer >= 300 
+            ? $"OMW: I'm tied up for a while. ETA around {absoluteTime}." 
+            : $"OMW: Leaving in about {buffer} mins. With drive time, ETA is {absoluteTime}.";
+
+        string escapedBody = Uri.EscapeDataString(textBody);
+        string platform = await JS.InvokeAsync<string>("getMobilePlatform");
+        
+        string smsUri = platform == "iOS" ? $"sms:&body={escapedBody}" : $"sms:?body={escapedBody}";
+        NavManager.NavigateTo(smsUri);
+    }
+}

@@ -1016,4 +1016,12 @@ body, html {
 }
 
 
+/* --- OMW App Styles --- */
+:root { --bg: #121212; --card: #1e1e1e; --text: #ffffff; --accent: #007aff; --danger: #ff3b30; }
+body { background-color: var(--bg); color: var(--text); font-family: system-ui, sans-serif; padding: 20px; }
+.omw-card { background: var(--card); border-radius: 16px; padding: 24px; max-width: 400px; margin: 40px auto; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+.btn-massive { background: var(--accent); color: white; border: none; border-radius: 12px; padding: 18px; width: 100%; font-size: 1.2rem; font-weight: bold; margin-bottom: 12px; cursor: pointer; transition: opacity 0.2s; }
+.btn-massive:active { opacity: 0.7; }
+.link-box { background: #000; color: #00ff00; padding: 12px; border-radius: 8px; font-family: monospace; word-break: break-all; margin-top: 16px; border: 1px solid #333; }
+.alert { background: rgba(255,59,48,0.2); color: var(--danger); padding: 16px; border-radius: 8px; border: 1px solid var(--danger); }
 
