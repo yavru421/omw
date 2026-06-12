@@ -1,0 +1,7 @@
+<Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(OMW.Pages.NotFound)">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(OMW.Layout.MainLayout)"/>
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+</Router>
+
