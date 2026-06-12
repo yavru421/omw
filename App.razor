@@ -1,7 +1,17 @@
-<Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(OMW.Pages.NotFound)">
+<Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(OMW.Layout.MainLayout)"/>
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(OMW.Layout.MainLayout)">
+            <div class="omw-card" style="text-align:center; margin-top: 60px;">
+                <div style="font-size:3rem;">🗺️</div>
+                <h2 style="margin: 16px 0 8px;">Page Not Found</h2>
+                <p style="color: var(--text-secondary);">This link may be invalid or expired.</p>
+                <a href="/" style="display:inline-block;margin-top:16px;color:#007aff;font-weight:600;">← Generate a New Link</a>
+            </div>
+        </LayoutView>
+    </NotFound>
 </Router>
 
