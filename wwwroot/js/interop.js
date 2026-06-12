@@ -24,3 +24,25 @@ window.getMobilePlatform = () => {
     if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) return "iOS";
     return "Unknown";
 };
+
+window.copyToClipboard = (text) => {
+    if (!navigator.clipboard) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+            return true;
+        } catch (err) {
+            document.body.removeChild(textarea);
+            return false;
+        }
+    }
+    return navigator.clipboard.writeText(text)
+        .then(() => true)
+        .catch(() => false);
+};
+

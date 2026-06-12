@@ -4,26 +4,47 @@
 @inject OMW.Services.IRoutingService RoutingService
 
 <div class="omw-card">
-    <h2>When are you heading out?</h2>
+    <div style="margin-bottom: 24px;">
+        <div style="font-size: 3rem; margin-bottom: 12px; filter: drop-shadow(0 4px 12px rgba(90, 86, 214, 0.35));">🚗</div>
+        <h1 style="font-size: 1.8rem; font-weight: 800; margin: 0; background: linear-gradient(135deg, #ffffff, #c7d2fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Heading Out?</h1>
+        <p style="color: var(--text-secondary); margin: 8px 0 0 0; font-size: 0.95rem; font-weight: 400; line-height: 1.4;">
+            Select when you plan to leave. We'll query real-time road distances to generate your SMS.
+        </p>
+    </div>
 
     @if (gpsDenied)
     {
-        <div class="alert">
-            <strong>Location Required</strong><br/>
-            Please manually text your ETA, or refresh and allow location access.
+        <div class="alert" style="animation: cardEntrance 0.3s ease;">
+            <div style="font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; color: var(--accent-red);">
+                <span>📍</span> Location Required
+            </div>
+            <div style="margin-bottom: 12px;">Please enable GPS permissions, refresh, and try again so we can determine your route.</div>
+            <button class="btn-massive btn-secondary-omw" style="margin-bottom: 0;" @onclick="RefreshPage">🔄 Retry Location</button>
         </div>
     }
     else if (isProcessing)
     {
-        <p><em>Calculating drive time...</em></p>
+        <div style="padding: 30px 0; display: flex; flex-direction: column; align-items: center; gap: 16px; animation: cardEntrance 0.3s ease;">
+            <div class="spinner-omw" style="width: 48px; height: 48px; border-width: 4px; border-top-color: #007aff;"></div>
+            <div style="font-weight: 600; color: #a5b4fc; font-size: 1.05rem;">Calculating live drive time...</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">Querying telemetry routing servers</div>
+        </div>
     }
     else
     {
-        <div style="margin-top: 24px;">
-            <button class="btn-massive" @onclick="() => ProcessEtaAsync(10)">In 10 Minutes</button>
-            <button class="btn-massive" @onclick="() => ProcessEtaAsync(30)">In 30 Minutes</button>
-            <button class="btn-massive" @onclick="() => ProcessEtaAsync(60)">In 1 Hour</button>
-            <button class="btn-massive" @onclick="() => ProcessEtaAsync(300)">5+ Hours (Tied up)</button>
+        <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px; animation: cardEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
+            <button class="btn-massive" @onclick="() => ProcessEtaAsync(10)">
+                <span>⚡</span> In 10 Minutes
+            </button>
+            <button class="btn-massive" @onclick="() => ProcessEtaAsync(30)">
+                <span>🕒</span> In 30 Minutes
+            </button>
+            <button class="btn-massive" @onclick="() => ProcessEtaAsync(60)">
+                <span>⏳</span> In 1 Hour
+            </button>
+            <button class="btn-massive btn-secondary-omw" @onclick="() => ProcessEtaAsync(300)">
+                <span>☕</span> 5+ Hours (Tied up)
+            </button>
         </div>
     }
 </div>
@@ -43,7 +64,10 @@
             var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
             if (!query.TryGetValue("lat", out var aLatStr) || !query.TryGetValue("lng", out var aLngStr))
+            {
+                gpsDenied = true;
                 return; 
+            }
 
             double userALat = double.Parse(aLatStr);
             double userALng = double.Parse(aLngStr);
@@ -79,5 +103,10 @@
         
         string smsUri = platform == "iOS" ? $"sms:&body={escapedBody}" : $"sms:?body={escapedBody}";
         NavManager.NavigateTo(smsUri);
+    }
+
+    private void RefreshPage()
+    {
+        NavManager.NavigateTo(NavManager.Uri, forceLoad: true);
     }
 }

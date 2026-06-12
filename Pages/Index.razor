@@ -3,51 +3,108 @@
 @inject NavigationManager NavManager
 
 <div class="omw-card">
-    <h2>OMW 📍</h2>
-    <p style="color: #aaa;">Drop a pin and generate a request link.</p>
+    <div style="margin-bottom: 24px;">
+        <div style="font-size: 3rem; margin-bottom: 12px; filter: drop-shadow(0 4px 12px rgba(0, 122, 255, 0.35));">📍</div>
+        <h1 style="font-size: 2.2rem; font-weight: 800; margin: 0; background: linear-gradient(135deg, #ffffff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">OMW</h1>
+        <p style="color: var(--text-secondary); margin: 8px 0 0 0; font-size: 0.95rem; font-weight: 400; line-height: 1.4;">
+            Generate a secure coordinates sharing link to calculate live driving drive-times.
+        </p>
+    </div>
 
     @if (isLocating)
     {
-        <p><em>Accessing GPS...</em></p>
+        <button class="btn-massive" disabled style="opacity: 0.85;">
+            <div class="spinner-omw"></div>
+            Acquiring GPS...
+        </button>
     }
     else
     {
-        <button class="btn-massive" @onclick="GenerateRequestLink">Get My Location Link</button>
+        <button class="btn-massive" @onclick="GenerateRequestLink">
+            <span>🚀</span> Get My Location Link
+        </button>
     }
 
     @if (!string.IsNullOrEmpty(generatedLink))
     {
-        <div class="link-box">@generatedLink</div>
-        <p style="font-size: 0.9rem; margin-top: 12px; color: #aaa;">Copy this link and send it via SMS.</p>
+        <div class="link-box-container" style="animation: cardEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
+            <div class="link-label">Your Location URL</div>
+            <div class="link-box" @onclick="CopyUrlToClipboard">
+                <span style="font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px;">@generatedLink</span>
+                <span style="font-weight: 700; color: #00c6ff; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                    @if (isCopied)
+                    {
+                        <span>✅ Copied</span>
+                    }
+                    else
+                    {
+                        <span>📋 Copy</span>
+                    }
+                </span>
+            </div>
+            <p style="font-size: 0.85rem; margin-top: 10px; color: var(--text-secondary); line-height: 1.4;">
+                Send this link to User B via SMS or messaging apps.
+            </p>
+        </div>
     }
     
     @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="alert mt-3">@errorMessage</div>
+        <div class="alert" style="animation: cardEntrance 0.3s ease;">
+            <div style="font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                <span>⚠️</span> Location Access Failed
+            </div>
+            <div>@errorMessage</div>
+        </div>
     }
 </div>
 
 @code {
     private string generatedLink = "";
     private bool isLocating;
+    private bool isCopied;
     private string errorMessage = "";
 
     private async Task GenerateRequestLink()
     {
         isLocating = true;
         errorMessage = "";
+        isCopied = false;
+        generatedLink = "";
         try
         {
             var coords = await JS.InvokeAsync<OMW.Models.GpsCoordinates>("getDeviceLocation");
             generatedLink = $"{NavManager.BaseUri}respond?lat={coords.Latitude}&lng={coords.Longitude}";
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            errorMessage = "Could not access location. Please check your browser permissions.";
+            errorMessage = "Could not access location. Please verify your browser/OS location permissions are enabled.";
         }
         finally
         {
             isLocating = false;
+        }
+    }
+
+    private async Task CopyUrlToClipboard()
+    {
+        if (string.IsNullOrEmpty(generatedLink)) return;
+        
+        try
+        {
+            var success = await JS.InvokeAsync<bool>("copyToClipboard", generatedLink);
+            if (success)
+            {
+                isCopied = true;
+                StateHasChanged();
+                await Task.Delay(2000);
+                isCopied = false;
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+            // Fallback
         }
     }
 }

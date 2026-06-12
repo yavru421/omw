@@ -1016,12 +1016,159 @@ body, html {
 }
 
 
-/* --- OMW App Styles --- */
-:root { --bg: #121212; --card: #1e1e1e; --text: #ffffff; --accent: #007aff; --danger: #ff3b30; }
-body { background-color: var(--bg); color: var(--text); font-family: system-ui, sans-serif; padding: 20px; }
-.omw-card { background: var(--card); border-radius: 16px; padding: 24px; max-width: 400px; margin: 40px auto; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-.btn-massive { background: var(--accent); color: white; border: none; border-radius: 12px; padding: 18px; width: 100%; font-size: 1.2rem; font-weight: bold; margin-bottom: 12px; cursor: pointer; transition: opacity 0.2s; }
-.btn-massive:active { opacity: 0.7; }
-.link-box { background: #000; color: #00ff00; padding: 12px; border-radius: 8px; font-family: monospace; word-break: break-all; margin-top: 16px; border: 1px solid #333; }
-.alert { background: rgba(255,59,48,0.2); color: var(--danger); padding: 16px; border-radius: 8px; border: 1px solid var(--danger); }
+/* --- OMW App Styles (Premium Glassmorphism Theme) --- */
+:root {
+    --bg-gradient: radial-gradient(circle at 10% 20%, rgba(90, 86, 214, 0.15) 0%, rgba(0, 0, 0, 0) 40%),
+                   radial-gradient(circle at 90% 80%, rgba(0, 122, 255, 0.15) 0%, rgba(0, 0, 0, 0) 50%),
+                   #0a0a0c;
+    --card-bg: rgba(22, 22, 26, 0.65);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --text-primary: #ffffff;
+    --text-secondary: #9aa0a6;
+    --accent-glow: linear-gradient(135deg, #007aff, #00c6ff);
+    --accent-glow-hover: linear-gradient(135deg, #3395ff, #33d3ff);
+    --accent-red: #ff3b30;
+    --accent-green: #34c759;
+}
+
+body {
+    background: var(--bg-gradient);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+}
+
+.omw-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    padding: 32px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-massive {
+    background: var(--accent-glow);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    padding: 16px 20px;
+    width: 100%;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 14px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0, 122, 255, 0.25);
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: -0.2px;
+}
+
+.btn-massive:hover {
+    background: var(--accent-glow-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(0, 122, 255, 0.4);
+}
+
+.btn-massive:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2);
+}
+
+.btn-massive.btn-secondary-omw {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+}
+.btn-massive.btn-secondary-omw:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.link-box-container {
+    margin-top: 24px;
+    text-align: left;
+    position: relative;
+}
+
+.link-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.link-box {
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-primary);
+    padding: 14px;
+    border-radius: 12px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    word-break: break-all;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.link-box:hover {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: rgba(0, 122, 255, 0.3);
+}
+
+.alert {
+    background: rgba(255, 59, 48, 0.08);
+    color: #ff453a;
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 59, 48, 0.2);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    text-align: left;
+    margin-top: 16px;
+}
+
+/* Spinner and Animations */
+.spinner-omw {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top: 3px solid #00c6ff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+}
+
+@keyframes cardEntrance {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
 
