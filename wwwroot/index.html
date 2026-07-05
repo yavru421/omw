@@ -68,7 +68,8 @@
         }
     </script>
 
-    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script src="js/webrtc.js"></script>
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
     <script>
         // Request persistent storage defensively for iOS 7-day eviction
         if (navigator.storage && navigator.storage.persist) {

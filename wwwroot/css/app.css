@@ -14,18 +14,15 @@ body, html {
     color: var(--text-white);
     margin: 0;
     font-family: system-ui, -apple-system, sans-serif;
-    height: 100vh;
-    overflow: hidden;
-    overscroll-behavior-y: none;
+    min-height: 100vh;
     -webkit-tap-highlight-color: transparent;
 }
 
 #app {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    min-height: 100vh;
     width: 100vw;
-    overflow: hidden;
 }
 
 #blazor-error-ui {

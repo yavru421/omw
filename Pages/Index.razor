@@ -2,35 +2,35 @@
 @inject IJSRuntime JS
 @inject NavigationManager NavManager
 
-<div class="omw-card">
+<div class="omw-card" style="padding: 30px;">
     <div style="margin-bottom: 24px;">
         <div style="font-size: 3rem; margin-bottom: 12px; filter: drop-shadow(0 4px 12px rgba(0, 122, 255, 0.35));">📍</div>
-        <h1 style="font-size: 2.2rem; font-weight: 800; margin: 0; background: linear-gradient(135deg, #ffffff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">OMW</h1>
+        <h1 style="font-size: 2.2rem; font-weight: 800; margin: 0; background: linear-gradient(135deg, #ffffff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Live OMW</h1>
         <p style="color: var(--text-secondary); margin: 8px 0 0 0; font-size: 0.95rem; font-weight: 400; line-height: 1.4;">
-            Generate a secure coordinates sharing link to calculate live driving drive-times.
+            Generate a secure, zero-liability tracking link to see when your guest is arriving.
         </p>
     </div>
 
-    @if (isLocating)
+    @if (isGenerating)
     {
         <button class="btn-massive" disabled style="opacity: 0.85;">
             <div class="spinner-omw"></div>
-            Acquiring GPS...
+            Initializing Session...
         </button>
     }
-    else
+    else if (string.IsNullOrEmpty(sessionId))
     {
-        <button class="btn-massive" @onclick="GenerateRequestLink">
-            <span>🚀</span> Get My Location Link
+        <button class="btn-massive" @onclick="GenerateLiveLink">
+            <span>🚀</span> Create Live Link
         </button>
     }
 
-    @if (!string.IsNullOrEmpty(generatedLink))
+    @if (!string.IsNullOrEmpty(sessionId))
     {
         <div class="link-box-container" style="animation: cardEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1);">
-            <div class="link-label">Your Location URL</div>
+            <div class="link-label">Your Live Tracking URL</div>
             <div class="link-box" @onclick="CopyUrlToClipboard">
-                <span style="font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px;">@generatedLink</span>
+                <span style="font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px;">@GetLink()</span>
                 <span style="font-weight: 700; color: #00c6ff; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
                     @if (isCopied)
                     {
@@ -43,56 +43,78 @@
                 </span>
             </div>
             <p style="font-size: 0.85rem; margin-top: 10px; color: var(--text-secondary); line-height: 1.4;">
-                Send this link to User B via SMS or messaging apps.
+                Send this to your guest. Leave this page open to see their ETA instantly!
             </p>
         </div>
-    }
-    
-    @if (!string.IsNullOrEmpty(errorMessage))
-    {
-        <div class="alert" style="animation: cardEntrance 0.3s ease;">
-            <div style="font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-                <span>⚠️</span> Location Access Failed
-            </div>
-            <div>@errorMessage</div>
+        
+        <div class="dashboard-panel" style="margin-top: 20px; padding: 20px; border-radius: 12px; background: rgba(0, 122, 255, 0.1); border: 1px solid rgba(0, 122, 255, 0.3);">
+            <h3 style="margin-top: 0; color: #a5b4fc;">Live Status</h3>
+            @if (string.IsNullOrEmpty(receivedEta))
+            {
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="spinner-omw" style="width: 20px; height: 20px; border-width: 2px;"></div>
+                    <span style="color: var(--text-secondary);">Waiting for guest to respond...</span>
+                </div>
+            }
+            else
+            {
+                <div style="font-size: 1.8rem; font-weight: 800; color: #2ea043; animation: pulse 2s infinite;">
+                    @receivedEta
+                </div>
+            }
         </div>
     }
 </div>
 
 @code {
-    private string generatedLink = "";
-    private bool isLocating;
+    private string sessionId = "";
+    private bool isGenerating;
     private bool isCopied;
-    private string errorMessage = "";
+    private string receivedEta = "";
+    private DotNetObjectReference<Index>? objRef;
 
-    private async Task GenerateRequestLink()
+    protected override void OnInitialized()
     {
-        isLocating = true;
-        errorMessage = "";
-        isCopied = false;
-        generatedLink = "";
+        objRef = DotNetObjectReference.Create(this);
+    }
+
+    private async Task GenerateLiveLink()
+    {
+        isGenerating = true;
         try
         {
-            var coords = await JS.InvokeAsync<OMW.Models.GpsCoordinates>("getDeviceLocation");
-            generatedLink = $"{NavManager.BaseUri}respond?lat={coords.Latitude}&lng={coords.Longitude}";
+            // Call JS to create WebRTC session
+            sessionId = await JS.InvokeAsync<string>("webrtc.initDashboard", objRef);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            errorMessage = "Could not access location. Please verify your browser/OS location permissions are enabled.";
+            Console.WriteLine("Error generating live link: " + ex.Message);
         }
         finally
         {
-            isLocating = false;
+            isGenerating = false;
         }
+    }
+
+    private string GetLink()
+    {
+        return $"{NavManager.BaseUri}respond?sessionId={sessionId}";
+    }
+
+    [JSInvokable]
+    public void OnEtaReceived(string etaMessage)
+    {
+        receivedEta = etaMessage;
+        StateHasChanged();
     }
 
     private async Task CopyUrlToClipboard()
     {
-        if (string.IsNullOrEmpty(generatedLink)) return;
+        if (string.IsNullOrEmpty(sessionId)) return;
         
         try
         {
-            var success = await JS.InvokeAsync<bool>("copyToClipboard", generatedLink);
+            var success = await JS.InvokeAsync<bool>("copyToClipboard", GetLink());
             if (success)
             {
                 isCopied = true;
@@ -106,5 +128,10 @@
         {
             // Fallback
         }
+    }
+    
+    public void Dispose()
+    {
+        objRef?.Dispose();
     }
 }

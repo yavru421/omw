@@ -8,26 +8,39 @@
         <div style="font-size: 3rem; margin-bottom: 12px; filter: drop-shadow(0 4px 12px rgba(90, 86, 214, 0.35));">🚗</div>
         <h1 style="font-size: 1.8rem; font-weight: 800; margin: 0; background: linear-gradient(135deg, #ffffff, #c7d2fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Heading Out?</h1>
         <p style="color: var(--text-secondary); margin: 8px 0 0 0; font-size: 0.95rem; font-weight: 400; line-height: 1.4;">
-            Select when you plan to leave. We'll query real-time road distances to generate your SMS.
+            Select when you plan to leave. Your live ETA will be sent directly to their dashboard.
         </p>
     </div>
 
-    @if (gpsDenied)
+    @if (string.IsNullOrEmpty(sessionId))
     {
         <div class="alert" style="animation: cardEntrance 0.3s ease;">
             <div style="font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; color: var(--accent-red);">
-                <span>📍</span> Location Required
+                <span>⚠️</span> Invalid Link
             </div>
-            <div style="margin-bottom: 12px;">Please enable GPS permissions, refresh, and try again so we can determine your route.</div>
-            <button class="btn-massive btn-secondary-omw" style="margin-bottom: 0;" @onclick="RefreshPage">🔄 Retry Location</button>
+            <div style="margin-bottom: 12px;">This tracking link is missing a session ID. Please ask them to send a new link.</div>
+        </div>
+    }
+    else if (!isConnected)
+    {
+        <div style="padding: 30px 0; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+            <div class="spinner-omw" style="width: 48px; height: 48px; border-width: 4px; border-top-color: #007aff;"></div>
+            <div style="font-weight: 600; color: #a5b4fc; font-size: 1.05rem;">Connecting to dashboard...</div>
         </div>
     }
     else if (isProcessing)
     {
         <div style="padding: 30px 0; display: flex; flex-direction: column; align-items: center; gap: 16px; animation: cardEntrance 0.3s ease;">
-            <div class="spinner-omw" style="width: 48px; height: 48px; border-width: 4px; border-top-color: #007aff;"></div>
+            <div class="spinner-omw" style="width: 48px; height: 48px; border-width: 4px; border-top-color: #2ea043;"></div>
             <div style="font-weight: 600; color: #a5b4fc; font-size: 1.05rem;">Calculating live drive time...</div>
-            <div style="font-size: 0.85rem; color: var(--text-secondary);">Querying telemetry routing servers</div>
+        </div>
+    }
+    else if (etaSent)
+    {
+        <div style="padding: 30px 0; text-align: center; animation: cardEntrance 0.3s ease;">
+            <div style="font-size: 4rem; margin-bottom: 10px;">✅</div>
+            <h2 style="color: #2ea043; margin-top: 0;">ETA Sent!</h2>
+            <p style="color: var(--text-secondary);">Your friend has received your ETA on their live dashboard. Drive safe!</p>
         </div>
     }
     else
@@ -51,67 +64,70 @@
 
 @code {
     private bool isProcessing;
-    private bool gpsDenied;
+    private bool isConnected;
+    private bool etaSent;
+    private string sessionId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = NavManager.ToAbsoluteUri(NavManager.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("sessionId", out var sid))
+        {
+            sessionId = sid;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(sessionId))
+        {
+            // Join the WebRTC session
+            bool joined = await JS.InvokeAsync<bool>("webrtc.joinSession", sessionId);
+            if (joined)
+            {
+                isConnected = true;
+                StateHasChanged();
+            }
+        }
+    }
 
     private async Task ProcessEtaAsync(int bufferMinutes)
     {
         isProcessing = true;
-        gpsDenied = false;
+        StateHasChanged();
 
         try
         {
-            var uri = NavManager.ToAbsoluteUri(NavManager.Uri);
-            var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
-
-            if (!query.TryGetValue("lat", out var aLatStr) || !query.TryGetValue("lng", out var aLngStr) ||
-                string.IsNullOrEmpty(aLatStr) || string.IsNullOrEmpty(aLngStr))
-            {
-                gpsDenied = true;
-                return; 
-            }
-
-            if (!double.TryParse(aLatStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double userALat) ||
-                !double.TryParse(aLngStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double userALng))
-            {
-                gpsDenied = true;
-                return;
-            }
-
-            var userBCoords = await JS.InvokeAsync<OMW.Models.GpsCoordinates>("getDeviceLocation");
+            // In a real app, we'd query OSRM for real drive time based on coordinates.
+            // Since we stripped the GPS coordinate exchange to zero-liability, 
+            // we will just use a generic buffer or integrate the traveler's GPS to a known fixed point here.
+            // For now, we will just send the requested ETA buffer directly.
             
-            int travelTimeMinutes = await RoutingService.GetDriveTimeMinutesAsync(userBCoords.Latitude, userBCoords.Longitude, userALat, userALng);
-
-            DateTime finalArrival = DateTime.Now.AddMinutes(bufferMinutes).AddMinutes(travelTimeMinutes);
+            DateTime finalArrival = DateTime.Now.AddMinutes(bufferMinutes);
             string formattedTime = finalArrival.ToString("t"); 
+            
+            string textBody = bufferMinutes >= 300 
+                ? $"Tied up for a while. ETA around {formattedTime}." 
+                : $"Leaving in ~{bufferMinutes} mins. ETA is {formattedTime}.";
 
-            await TriggerSmsRedirect(formattedTime, bufferMinutes);
+            // Send via WebRTC
+            bool sent = await JS.InvokeAsync<bool>("webrtc.sendEtaData", textBody);
+            
+            if (sent)
+            {
+                etaSent = true;
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            gpsDenied = true;
+            Console.WriteLine("Error processing ETA: " + ex.Message);
         }
         finally
         {
             isProcessing = false;
             StateHasChanged();
         }
-    }
-
-    private async Task TriggerSmsRedirect(string absoluteTime, int buffer)
-    {
-        string textBody = buffer >= 300 
-            ? $"OMW: I'm tied up for a while. ETA around {absoluteTime}." 
-            : $"OMW: Leaving in about {buffer} mins. With drive time, ETA is {absoluteTime}.";
-
-        string escapedBody = Uri.EscapeDataString(textBody);
-        string platform = await JS.InvokeAsync<string>("getMobilePlatform");
-        
-        string smsUri = platform == "iOS" ? $"sms:&body={escapedBody}" : $"sms:?body={escapedBody}";
-        NavManager.NavigateTo(smsUri);
-    }
-
-    private void RefreshPage()
-    {
-        NavManager.NavigateTo(NavManager.Uri, forceLoad: true);
     }
 }
