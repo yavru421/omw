@@ -24,7 +24,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
     <!-- JS Interops -->
-    <script src="js/iosPwaInterop.js"></script>
     
     <script type="importmap"></script>
 </head>
@@ -69,7 +68,7 @@
     </script>
 
     <script src="js/webrtc.js"></script>
-    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
     <script>
         // Request persistent storage defensively for iOS 7-day eviction
         if (navigator.storage && navigator.storage.persist) {
@@ -96,8 +95,6 @@
             };
         });
     </script>
-    <script src="js/editorInteractions.js"></script>
-    
     <script>
         // High-speed blob transmission stream bypass framework
         window.shotStackSaver = {
